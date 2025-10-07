@@ -35,6 +35,7 @@ public class FaceAccessoryManager : MonoBehaviour
 
     void OnEnable()
     {
+        if (logText) logText.text = "Wajah belum terdeteksi, menunggu...";
         if (faceManager != null)
             faceManager.trackablesChanged.AddListener(OnFacesChanged);
     }
@@ -125,7 +126,7 @@ public class FaceAccessoryManager : MonoBehaviour
                     logText.text = $"Prediksi: {response.prediction}\nKeyakinan: {response.confidence}";
                 }
 
-                BeriPrefabAksesoris(response.prediction, face);
+                BeriPrefabAksesoris(response.prediction, response.confidence, face);
             }
             else if (logText)
                 logText.text = "Error koneksi ke server.";
@@ -133,7 +134,7 @@ public class FaceAccessoryManager : MonoBehaviour
     }
 
     // Menerima ARFace agar tahu di mana harus menempelkan prefab
-    private void BeriPrefabAksesoris(string gender, ARFace face)
+    private void BeriPrefabAksesoris(string gender, string confidence, ARFace face)
     {
         if (sudahPunyaAksesoris) return;
         
@@ -145,6 +146,7 @@ public class FaceAccessoryManager : MonoBehaviour
 
         if (prefab != null)
         {
+            if (logText) logText.text = $"gender{gender}\nconfidence: {confidence}";
             GameObject topi = Instantiate(prefab, face.transform);
             topi.transform.localPosition = new Vector3(0, 0.2f, 0);
             sudahPunyaAksesoris = true;
