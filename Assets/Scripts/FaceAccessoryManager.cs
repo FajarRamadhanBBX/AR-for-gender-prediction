@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
-using Unity.Collections; // <-- PERBAIKAN: Menggunakan ini, bukan LowLevel.Unsafe
+using Unity.Collections;
 using UnityEngine.Networking;
 using System.Collections;
 using System;
@@ -11,7 +11,7 @@ using TMPro;
 public class PredictionResponse
 {
     public string prediction;
-    public string confidence; // Pastikan tipe data ini cocok dengan JSON Anda. Jika backend mengirim float, ini harus 'public float confidence;'
+    public string confidence;
 }
 
 public class FaceAccessoryManager : MonoBehaviour
@@ -35,6 +35,7 @@ public class FaceAccessoryManager : MonoBehaviour
 
     void OnEnable()
     {
+        if (logText) logText.text = "Wajah belum terdeteksi, menunggu...";
         if (faceManager != null)
             faceManager.trackablesChanged.AddListener(OnFacesChanged);
     }
@@ -47,7 +48,6 @@ public class FaceAccessoryManager : MonoBehaviour
 
     private void OnFacesChanged(ARTrackablesChangedEventArgs<ARFace> args)
     {
-        // PERBAIKAN: Ambil referensi wajah yang baru terdeteksi
         if (args.added.Count > 0 && !sudahPunyaAksesoris)
         {
             ARFace face = args.added[0]; // Ambil wajah pertama yang terdeteksi
@@ -58,7 +58,6 @@ public class FaceAccessoryManager : MonoBehaviour
         {
             sudahPunyaAksesoris = false;
             if (logText) logText.text = "Wajah hilang, menunggu...";
-            // Anda mungkin juga perlu menghancurkan aksesori yang sudah ada
         }
     }
 
@@ -82,10 +81,8 @@ public class FaceAccessoryManager : MonoBehaviour
         Texture2D texture = new Texture2D(conversionParams.outputDimensions.x, conversionParams.outputDimensions.y, conversionParams.outputFormat, false);
         if (logText) logText.text = "Texture terbuat";
 
-        // <-- PERBAIKAN UTAMA UNTUK ERROR CS0214
         var rawTextureData = texture.GetRawTextureData<byte>();
         cpuImage.Convert(conversionParams, rawTextureData); 
-        // ------------------------------------------
 
         cpuImage.Dispose();
         texture.Apply();
@@ -93,7 +90,7 @@ public class FaceAccessoryManager : MonoBehaviour
         return texture;
     }
 
-    // PERBAIKAN: Coroutine sekarang menerima ARFace sebagai parameter
+    // Coroutine menerima ARFace sebagai parameter
     private IEnumerator PrediksiGender(ARFace face)
     {
         if (logText) logText.text = "Menganalisis wajah...";
@@ -109,11 +106,11 @@ public class FaceAccessoryManager : MonoBehaviour
         Destroy(screenshot);
         string base64 = Convert.ToBase64String(imageBytes);
         string json = $"{{\"image\":\"{base64}\"}}";
-        if (logText) logText.text = $"json terbuat: {json}";
+        if (logText) logText.text = $"json terbuat";
 
         using (UnityWebRequest req = new UnityWebRequest(apiURL, "POST"))
         {
-            if (logText) logText.text = $"lakukan post dari json: {json}";
+            if (logText) logText.text = $"lakukan post dari json";
             req.uploadHandler = new UploadHandlerRaw(new System.Text.UTF8Encoding().GetBytes(json));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
@@ -126,35 +123,32 @@ public class FaceAccessoryManager : MonoBehaviour
                 var response = JsonUtility.FromJson<PredictionResponse>(req.downloadHandler.text);
                 if (logText)
                 {
-                    // Pastikan confidence di backend adalah float (bukan string persen)
-                    // Jika backend mengirim string persen, parsing JSON akan gagal
                     logText.text = $"Prediksi: {response.prediction}\nKeyakinan: {response.confidence}";
                 }
 
-                // PERBAIKAN: Kirim referensi wajah ke metode pemasang aksesori
-                BeriPrefabAksesoris(response.prediction, face);
+                BeriPrefabAksesoris(response.prediction, response.confidence, face);
             }
             else if (logText)
                 logText.text = "Error koneksi ke server.";
         }
     }
 
-    // PERBAIKAN: Metode ini sekarang menerima ARFace agar tahu di mana harus menempelkan prefab
-    private void BeriPrefabAksesoris(string gender, ARFace face)
+    // Menerima ARFace agar tahu di mana harus menempelkan prefab
+    private void BeriPrefabAksesoris(string gender, string confidence, ARFace face)
     {
         if (sudahPunyaAksesoris) return;
         
         GameObject prefab = null;
         if (logText) logText.text = "Beri prefab aksesoris";
 
-        // Gunakan Contains agar lebih fleksibel (misal: "laki-laki" vs "Pria")
         if (gender.ToLower().Contains("pria")) prefab = prefabPria;
         else if (gender.ToLower().Contains("wanita")) prefab = prefabWanita;
 
         if (prefab != null)
         {
-            // PERBAIKAN: Instantiate prefab sebagai anak dari 'face.transform', bukan 'transform'
-            Instantiate(prefab, face.transform);
+            // if (logText) logText.text = $"gender: {gender}\nconfidence: {confidence}";
+            GameObject topi = Instantiate(prefab, face.transform);
+            topi.transform.localPosition = new Vector3(0, 0.15f, 0);
             sudahPunyaAksesoris = true;
         }
     }
