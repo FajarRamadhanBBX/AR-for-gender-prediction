@@ -146,9 +146,9 @@ public class FaceAccessoryManager : MonoBehaviour
 
         if (prefab != null)
         {
-            if (logText) logText.text = $"gender{gender}\nconfidence: {confidence}";
+            // if (logText) logText.text = $"gender: {gender}\nconfidence: {confidence}";
             GameObject topi = Instantiate(prefab, face.transform);
-            topi.transform.localPosition = new Vector3(0, 0.2f, 0);
+            topi.transform.localPosition = new Vector3(0, 0.15f, 0);
             sudahPunyaAksesoris = true;
         }
     }
