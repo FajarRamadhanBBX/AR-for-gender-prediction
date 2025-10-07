@@ -1,11 +1,11 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
-using Unity.Collections;
 using UnityEngine.Networking;
+using TMPro;
 using System.Collections;
 using System;
-using TMPro;
 
 [Serializable]
 public class PredictionResponse
@@ -21,21 +21,35 @@ public class FaceAccessoryManager : MonoBehaviour
     public ARFaceManager faceManager;
 
     [Header("API Prediksi")]
-    public string apiURL;
+    [Tooltip("Masukkan URL API prediksi kamu di sini")]
+    public string apiURL = "http://54.255.108.159:8000/predict";
 
     [Header("Prefab Aksesoris")]
     public GameObject prefabPria;
     public GameObject prefabWanita;
 
-    [Header("UI")]
-    public TextMeshProUGUI logText;
-    public TextMeshProUGUI changedText;
+    [Header("UI Komponen")]
+    public GameObject infoPanel;
+    public TextMeshProUGUI hasilText;
+    public TextMeshProUGUI statusText;
+    public GameObject startButton;
 
+    private bool detectionActive = false;
     private bool sudahPunyaAksesoris = false;
+    private GameObject aksesorisAktif;
+
+    void Start()
+    {
+        if (infoPanel) infoPanel.SetActive(true);
+        if (hasilText) hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
+        if (statusText) statusText.text = "Klik tombol untuk mulai deteksi.";
+
+        // Warna awal tombol hijau
+        UpdateButtonUI(false);
+    }
 
     void OnEnable()
     {
-        if (logText) logText.text = "Wajah belum terdeteksi, menunggu...";
         if (faceManager != null)
             faceManager.trackablesChanged.AddListener(OnFacesChanged);
     }
@@ -46,27 +60,105 @@ public class FaceAccessoryManager : MonoBehaviour
             faceManager.trackablesChanged.RemoveListener(OnFacesChanged);
     }
 
-    private void OnFacesChanged(ARTrackablesChangedEventArgs<ARFace> args)
+    // 🔘 Fungsi utama tombol
+    public void MulaiPrediksi()
     {
-        if (args.added.Count > 0 && !sudahPunyaAksesoris)
+        if (!detectionActive)
         {
-            ARFace face = args.added[0]; // Ambil wajah pertama yang terdeteksi
-            StartCoroutine(PrediksiGender(face)); // Kirim referensi wajah ke coroutine
-        }
+            // STATE: Mulai deteksi
+            detectionActive = true;
 
-        if (args.removed.Count > 0)
+            if (statusText != null)
+                statusText.text = "Arahkan kamera ke wajah untuk mulai deteksi...";
+
+            if (infoPanel != null)
+            {
+                infoPanel.SetActive(true);
+                if (hasilText != null)
+                    hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
+            }
+
+            // Ubah tampilan tombol
+            UpdateButtonUI(true);
+        }
+        else
         {
-            sudahPunyaAksesoris = false;
-            if (logText) logText.text = "Wajah hilang, menunggu...";
+            // STATE: Reset
+            ResetPrediksi();
         }
     }
 
+    // 🔁 Fungsi Reset
+    private void ResetPrediksi()
+    {
+        detectionActive = false;
+        sudahPunyaAksesoris = false;
+
+        if (aksesorisAktif != null)
+        {
+            Destroy(aksesorisAktif);
+            aksesorisAktif = null;
+        }
+
+        if (hasilText != null)
+            hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
+        if (statusText != null)
+            statusText.text = "Klik tombol untuk mulai deteksi.";
+
+        UpdateButtonUI(false);
+
+        Debug.Log("Prediksi telah di reset.");
+    }
+
+    private void UpdateButtonUI(bool aktif)
+    {
+        if (startButton != null)
+        {
+            // Ubah teks tombol
+            TextMeshProUGUI btnText = startButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnText != null)
+                btnText.text = aktif ? "Reset Prediksi" : "Mulai Prediksi";
+
+            // Ubah warna tombol
+            Image btnImage = startButton.GetComponent<Image>();
+            if (btnImage != null)
+                btnImage.color = aktif ? Color.red : Color.green;
+        }
+    }
+
+    // Event tracking wajah
+    private void OnFacesChanged(ARTrackablesChangedEventArgs<ARFace> args)
+    {
+        if (!detectionActive) return;
+
+        if (args.added.Count > 0 && !sudahPunyaAksesoris)
+        {
+            ARFace face = args.added[0];
+            statusText.text = "Wajah terdeteksi. Mengirim ke server...";
+            StartCoroutine(PrediksiGender(face));
+        }
+        else if (args.updated.Count > 0)
+        {
+            statusText.text = "Wajah masih terdeteksi...";
+        }
+        else if (args.removed.Count > 0)
+        {
+            sudahPunyaAksesoris = false;
+            if (aksesorisAktif != null) Destroy(aksesorisAktif);
+            statusText.text = "Wajah hilang. Arahkan kamera kembali.";
+        }
+        else
+        {
+            statusText.text = "Tidak ada wajah terdeteksi.";
+        }
+    }
+
+    // Tangkap frame kamera
     private Texture2D CaptureCameraImage()
     {
         if (cameraManager == null || !cameraManager.TryAcquireLatestCpuImage(out var cpuImage))
         {
-            Debug.LogWarning("Gagal mendapatkan ARCamera frame.");
-            if (logText) logText.text = "Gagal mendapatkan frame kamera";
+            statusText.text = "Gagal mengambil gambar kamera.";
             return null;
         }
 
@@ -79,77 +171,73 @@ public class FaceAccessoryManager : MonoBehaviour
         };
 
         Texture2D texture = new Texture2D(conversionParams.outputDimensions.x, conversionParams.outputDimensions.y, conversionParams.outputFormat, false);
-        if (logText) logText.text = "Texture terbuat";
-
         var rawTextureData = texture.GetRawTextureData<byte>();
-        cpuImage.Convert(conversionParams, rawTextureData); 
-
+        cpuImage.Convert(conversionParams, rawTextureData);
         cpuImage.Dispose();
         texture.Apply();
-        if (logText) logText.text = "texture di-apply";
+
         return texture;
     }
 
-    // Coroutine menerima ARFace sebagai parameter
+    // Prediksi gender via API
     private IEnumerator PrediksiGender(ARFace face)
     {
-        if (logText) logText.text = "Menganalisis wajah...";
-
         Texture2D screenshot = CaptureCameraImage();
         if (screenshot == null)
         {
-            if (logText) logText.text = "Gagal mengambil gambar kamera.";
+            statusText.text = "Gagal mengambil gambar kamera.";
             yield break;
         }
 
         byte[] imageBytes = screenshot.EncodeToJPG();
         Destroy(screenshot);
+
         string base64 = Convert.ToBase64String(imageBytes);
         string json = $"{{\"image\":\"{base64}\"}}";
-        if (logText) logText.text = $"json terbuat";
 
         using (UnityWebRequest req = new UnityWebRequest(apiURL, "POST"))
         {
-            if (logText) logText.text = $"lakukan post dari json";
             req.uploadHandler = new UploadHandlerRaw(new System.Text.UTF8Encoding().GetBytes(json));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
 
             yield return req.SendWebRequest();
-            if (logText) logText.text = $"send web request";
 
             if (req.result == UnityWebRequest.Result.Success)
             {
                 var response = JsonUtility.FromJson<PredictionResponse>(req.downloadHandler.text);
-                if (logText)
-                {
-                    logText.text = $"Prediksi: {response.prediction}\nKeyakinan: {response.confidence}";
-                }
+                float.TryParse(response.confidence, out float conf);
+                string persen = (conf * 100).ToString("F1");
 
-                BeriPrefabAksesoris(response.prediction, response.confidence, face);
+                hasilText.text = $"GENDER: {response.prediction.ToUpper()}\nCONFIDENCE: {persen}%";
+                statusText.text = "Deteksi berhasil!";
+                BeriPrefabAksesoris(response.prediction, face);
             }
-            else if (logText)
-                logText.text = "Error koneksi ke server.";
+            else
+            {
+                statusText.text = "Gagal menghubungi server.";
+            }
         }
     }
 
-    // Menerima ARFace agar tahu di mana harus menempelkan prefab
-    private void BeriPrefabAksesoris(string gender, string confidence, ARFace face)
+    private void BeriPrefabAksesoris(string gender, ARFace face)
     {
         if (sudahPunyaAksesoris) return;
-        
-        GameObject prefab = null;
-        if (logText) logText.text = "Beri prefab aksesoris";
 
-        if (gender.ToLower().Contains("pria")) prefab = prefabPria;
-        else if (gender.ToLower().Contains("wanita")) prefab = prefabWanita;
+        GameObject prefab = gender.ToLower().Contains("pria") ? prefabPria :
+                            gender.ToLower().Contains("wanita") ? prefabWanita : null;
 
         if (prefab != null)
         {
-            // if (logText) logText.text = $"gender: {gender}\nconfidence: {confidence}";
-            GameObject topi = Instantiate(prefab, face.transform);
-            topi.transform.localPosition = new Vector3(0, 0.15f, 0);
+            aksesorisAktif = Instantiate(prefab, face.transform);
+            aksesorisAktif.transform.localPosition = new Vector3(0, 0.15f, 0);
+            aksesorisAktif.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             sudahPunyaAksesoris = true;
+            statusText.text = "Aksesoris ditambahkan!";
+        }
+        else
+        {
+            statusText.text = "Tidak ada prefab yang sesuai.";
         }
     }
 }
