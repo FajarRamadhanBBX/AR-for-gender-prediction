@@ -1,0 +1,2 @@
+G:\ARVR\UJIAN\1\AR-for-gender-prediction\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+G:\ARVR\UJIAN\1\AR-for-gender-prediction\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt
