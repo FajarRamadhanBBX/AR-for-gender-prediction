@@ -106,11 +106,11 @@ public class FaceAccessoryManager : MonoBehaviour
         Destroy(screenshot);
         string base64 = Convert.ToBase64String(imageBytes);
         string json = $"{{\"image\":\"{base64}\"}}";
-        if (logText) logText.text = $"json terbuat: {json}";
+        if (logText) logText.text = $"json terbuat";
 
         using (UnityWebRequest req = new UnityWebRequest(apiURL, "POST"))
         {
-            if (logText) logText.text = $"lakukan post dari json: {json}";
+            if (logText) logText.text = $"lakukan post dari json";
             req.uploadHandler = new UploadHandlerRaw(new System.Text.UTF8Encoding().GetBytes(json));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
