@@ -81,4 +81,4 @@ Sebelum menjalankan aplikasi, pastikan *backend* sudah berjalan (baik secara lok
 ---
 ## ☁️ Panduan Menjalankan Backend
 
-Untuk instruksi cara menjalankan server *backend* (baik secara lokal maupun di AWS EC2), silakan melihat ke dokumentasi `README.md` di [repositori backend]([https://github.com/link-ke-repo-backend-anda](https://github.com/FajarRamadhanBBX/backend-for-AR-gender-detection)).
+Untuk instruksi cara menjalankan server *backend* (baik secara lokal maupun di AWS EC2), silakan melihat ke dokumentasi `README.md` di [repositori backend](https://github.com/FajarRamadhanBBX/backend-for-AR-gender-detection).
