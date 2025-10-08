@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8538924911230985854}
   - component: {fileID: 7100322274951330297}
+  - component: {fileID: 4954363495034972392}
   m_Layer: 0
   m_Name: cowboy
   m_TagString: Untagged
@@ -90,3 +91,15 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &4954363495034972392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2697325830391371419}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79b46452bcc344448550ada8f6d426b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARPrefabManipulator

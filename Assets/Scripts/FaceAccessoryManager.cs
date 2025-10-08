@@ -21,7 +21,6 @@ public class FaceAccessoryManager : MonoBehaviour
     public ARFaceManager faceManager;
 
     [Header("API Prediksi")]
-    [Tooltip("Masukkan URL API prediksi kamu di sini")]
     public string apiURL = "http://54.255.108.159:8000/predict";
 
     [Header("Prefab Aksesoris")]
@@ -38,13 +37,15 @@ public class FaceAccessoryManager : MonoBehaviour
     private bool sudahPunyaAksesoris = false;
     private GameObject aksesorisAktif;
 
+    public bool DetectionActive => detectionActive; // buat dicek di UIController
+    public GameObject AksesorisAktif => aksesorisAktif;
+
     void Start()
     {
         if (infoPanel) infoPanel.SetActive(true);
         if (hasilText) hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
         if (statusText) statusText.text = "Klik tombol untuk mulai deteksi.";
 
-        // Warna awal tombol hijau
         UpdateButtonUI(false);
     }
 
@@ -60,35 +61,21 @@ public class FaceAccessoryManager : MonoBehaviour
             faceManager.trackablesChanged.RemoveListener(OnFacesChanged);
     }
 
-    // 🔘 Fungsi utama tombol
     public void MulaiPrediksi()
     {
         if (!detectionActive)
         {
-            // STATE: Mulai deteksi
             detectionActive = true;
-
-            if (statusText != null)
-                statusText.text = "Arahkan kamera ke wajah untuk mulai deteksi...";
-
-            if (infoPanel != null)
-            {
-                infoPanel.SetActive(true);
-                if (hasilText != null)
-                    hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
-            }
-
-            // Ubah tampilan tombol
+            statusText.text = "Arahkan kamera ke wajah untuk mulai deteksi...";
+            hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
             UpdateButtonUI(true);
         }
         else
         {
-            // STATE: Reset
             ResetPrediksi();
         }
     }
 
-    // 🔁 Fungsi Reset
     private void ResetPrediksi()
     {
         detectionActive = false;
@@ -100,33 +87,25 @@ public class FaceAccessoryManager : MonoBehaviour
             aksesorisAktif = null;
         }
 
-        if (hasilText != null)
-            hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
-        if (statusText != null)
-            statusText.text = "Klik tombol untuk mulai deteksi.";
-
+        hasilText.text = "GENDER: ?\nCONFIDENCE: ?";
+        statusText.text = "Klik tombol untuk mulai deteksi.";
         UpdateButtonUI(false);
-
-        Debug.Log("Prediksi telah di reset.");
     }
 
     private void UpdateButtonUI(bool aktif)
     {
         if (startButton != null)
         {
-            // Ubah teks tombol
             TextMeshProUGUI btnText = startButton.GetComponentInChildren<TextMeshProUGUI>();
             if (btnText != null)
                 btnText.text = aktif ? "Reset Prediksi" : "Mulai Prediksi";
 
-            // Ubah warna tombol
             Image btnImage = startButton.GetComponent<Image>();
             if (btnImage != null)
                 btnImage.color = aktif ? Color.red : Color.green;
         }
     }
 
-    // Event tracking wajah
     private void OnFacesChanged(ARTrackablesChangedEventArgs<ARFace> args)
     {
         if (!detectionActive) return;
@@ -149,11 +128,10 @@ public class FaceAccessoryManager : MonoBehaviour
         }
         else
         {
-            statusText.text = "Tidak ada wajah terdeteksi.";
+            statusText.text = "Kamera mencari wajah...";
         }
     }
 
-    // Tangkap frame kamera
     private Texture2D CaptureCameraImage()
     {
         if (cameraManager == null || !cameraManager.TryAcquireLatestCpuImage(out var cpuImage))
@@ -179,7 +157,6 @@ public class FaceAccessoryManager : MonoBehaviour
         return texture;
     }
 
-    // Prediksi gender via API
     private IEnumerator PrediksiGender(ARFace face)
     {
         Texture2D screenshot = CaptureCameraImage();
@@ -234,6 +211,13 @@ public class FaceAccessoryManager : MonoBehaviour
             aksesorisAktif.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             sudahPunyaAksesoris = true;
             statusText.text = "Aksesoris ditambahkan!";
+
+            // kirim ke UI controller
+            ScaleUIController uiController = FindAnyObjectByType<ScaleUIController>();
+            if (uiController != null)
+            {
+                uiController.SetTargetObject(aksesorisAktif.transform);
+            }
         }
         else
         {
