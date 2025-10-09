@@ -11,6 +11,7 @@ Ini adalah proyek Ujian Tengah Semester (UTS) untuk mata kuliah Augmented Realit
 * **Integrasi AI:** Mengirim gambar wajah yang terdeteksi ke *backend* untuk dianalisis oleh model *deep learning*.
 * **Visualisasi AR Dinamis:** Menampilkan prefab yang berbeda (misalnya, kumis atau kacamata) yang menempel mengikuti wajah pengguna berdasarkan hasil prediksi.
 * **UI Informatif:** Memberikan umpan balik kepada pengguna mengenai status deteksi dan hasil prediksi.
+* **Slider Ukuran dan Rotasi**: Ukuran dan rotasi dari prefab yang ditampilkan dapat diatur untuk disesuaikan
 
 ---
 ## 🛠️ Teknologi yang Digunakan
